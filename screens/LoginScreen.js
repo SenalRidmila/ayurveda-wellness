@@ -5,7 +5,7 @@ import { login } from '../auth/authFunctions';
 import * as Google from 'expo-auth-session/providers/google';
 import * as WebBrowser from 'expo-web-browser';
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
-import { auth } from '../config/firebase';
+import { getFirebaseAuth } from '../config/firebase'; // Changed import
 
 // Complete web browser session if needed
 WebBrowser.maybeCompleteAuthSession();
@@ -27,6 +27,7 @@ export default function LoginScreen({ navigation }) {
       const { id_token } = response.params;
       if (id_token) {
         const credential = GoogleAuthProvider.credential(id_token);
+        const auth = getFirebaseAuth(); // Get auth instance
         signInWithCredential(auth, credential)
           .then(() => navigation.replace('Home'))
           .catch((err) => Alert.alert("Google Sign In Error", err.message));

@@ -12,4 +12,15 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
+
+let authInstance = null;
+
+export const getFirebaseAuth = () => {
+  if (!authInstance) {
+    authInstance = getAuth(app);
+  }
+  return authInstance;
+};
+
+// Optional: Export app if other firebase services need it directly
+// export { app };

@@ -1,33 +1,27 @@
 {
   "expo": {
-    "name": "ayurvedic-wellness-app",
-    "slug": "ayurvedic-wellness-app",
+    "name": "AyurvedicWellness",
+    "slug": "ayurvedicwellness",
+    "scheme": "ayurvedicwellness",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "entryPoint": "index.js",
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yourcompany.ayurvedicwellness"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "edgeToEdgeEnabled": true
+      "package": "com.yourcompany.ayurvedicwellness"
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-web-browser"
-    ]
+    }
   }
 }
