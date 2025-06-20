@@ -17,17 +17,16 @@ const Stack = createStackNavigator();
 
 export default function App() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Welcome" component={WelcomeScreen} />
-        <Stack.Screen name="KeyFeatures" component={KeyFeaturesScreen} />
-        <Stack.Screen name="Login" component={LoginScreen} />
-        <Stack.Screen name="Register" component={RegisterScreen} />
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="AISymptomChecker" component={AISymptomChecker} />
-        <Stack.Screen name="Remedies" component={Remedies} />
-        <Stack.Screen name="Doctors" component={Doctors} />   {/* <- THIS LINE */}
-      </Stack.Navigator>
-    </NavigationContainer>
+  <Stack.Navigator initialRouteName="Welcome" screenOptions={{ headerShown: false }}>
+  <Stack.Screen name="Welcome" component={WelcomeScreen} />
+  <Stack.Screen name="KeyFeatures" component={KeyFeaturesScreen} />
+  <Stack.Screen name="Login" component={LoginScreen} />
+  <Stack.Screen name="Register" component={RegisterScreen} />
+  <Stack.Screen name="Home" component={HomeScreen} />
+  <Stack.Screen name="AISymptomChecker" component={AISymptomChecker} />
+  <Stack.Screen name="Remedies" component={Remedies} />
+  <Stack.Screen name="Doctors" component={Doctors} />
+</Stack.Navigator>
+
   );
 }
