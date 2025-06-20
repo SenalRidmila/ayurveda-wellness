@@ -20,6 +20,7 @@ export default function RegisterScreen({ navigation }) {
     }
     try {
       await register(email, password);
+      Alert.alert('Success!', 'Registration successful!');
       navigation.replace('Home');
     } catch (err) {
       Alert.alert('Register Error', err.message);
