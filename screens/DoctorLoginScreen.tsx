@@ -82,6 +82,15 @@ const DoctorLoginScreen: React.FC<Props> = ({ navigation }) => {
         return;
       }
 
+      // Store the doctorId in the user's auth state
+      await user?.updateProfile({
+        displayName: userData.name,
+      });
+
+      // Store additional user data in local state or context if needed
+      const doctorId = userData.doctorId;
+      console.log('Doctor logged in with ID:', doctorId);
+
       // Navigate to doctor dashboard
       navigation.navigate('DoctorDashboard');
     } catch (error) {

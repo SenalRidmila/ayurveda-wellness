@@ -90,7 +90,7 @@ android {
     namespace 'com.ayurwedawellness'
     defaultConfig {
         applicationId 'com.ayurwedawellness'
-        minSdkVersion rootProject.ext.minSdkVersion
+        minSdkVersion 24
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
         versionName "1.0.0"
@@ -118,6 +118,21 @@ android {
         }
     }
     packagingOptions {
+        pickFirst '**/libc++_shared.so'
+        pickFirst '**/libjsc.so'
+        pickFirst '**/libfolly_runtime.so'
+        pickFirst '**/libreactnativejni.so'
+        pickFirst '**/libglog.so'
+        pickFirst '**/libjsi.so'
+        pickFirst '**/libreactnativeblob.so'
+        pickFirst '**/libfabricjni.so'
+        pickFirst '**/libfbjni.so'
+        pickFirst '**/libfolly_futures.so'
+        pickFirst '**/libhermes.so'
+        pickFirst '**/libhermes-executor.so'
+        pickFirst '**/libreactnativejni.so'
+        pickFirst '**/libturbomodulejsijni.so'
+        pickFirst '**/libyoga.so'
         jniLibs {
             useLegacyPackaging (findProperty('expo.useLegacyPackaging')?.toBoolean() ?: false)
         }

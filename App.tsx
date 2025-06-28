@@ -3,7 +3,7 @@ import { NavigationContainer, Theme, DefaultTheme } from '@react-navigation/nati
 import { createStackNavigator } from '@react-navigation/stack';
 import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { View, ActivityIndicator, Text, Alert } from 'react-native';
+import { View, ActivityIndicator, Text, Alert, Platform } from 'react-native';
 import {
   useFonts,
   Poppins_400Regular,
@@ -11,16 +11,14 @@ import {
   Poppins_600SemiBold,
   Poppins_700Bold,
 } from '@expo-google-fonts/poppins';
-import { auth, rtdb } from './firebaseConfig';
+import { auth } from './firebaseConfig';
 import firebase from './firebaseConfig'; // Import directly from firebaseConfig
 import emailjs from 'emailjs-com';
 import { EMAILJS_CONFIG } from './emailjsConfig';
+import NetInfo from '@react-native-community/netinfo';
 
 // Initialize EmailJS
 emailjs.init(EMAILJS_CONFIG.USER_ID);
-
-// Firebase Functions is already initialized in firebaseConfig.ts
-// No need to initialize it again here
 
 // Define theme colors
 const theme = {
@@ -123,15 +121,19 @@ const LoadingScreen = () => (
 // Error Boundary Component
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
-  { hasError: boolean }
+  { hasError: boolean; errorInfo: string }
 > {
   constructor(props: { children: React.ReactNode }) {
     super(props);
-    this.state = { hasError: false };
+    this.state = { hasError: false, errorInfo: '' };
   }
 
-  static getDerivedStateFromError() {
-    return { hasError: true };
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, errorInfo: error.toString() };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Application error:', error, errorInfo);
   }
 
   render() {
@@ -144,6 +146,11 @@ class ErrorBoundary extends React.Component<
           <Text style={{ color: theme.colors.text, textAlign: 'center', paddingHorizontal: theme.spacing.lg, fontFamily: 'Poppins_400Regular' }}>
             We apologize for the inconvenience. Please try restarting the app.
           </Text>
+          {__DEV__ && (
+            <Text style={{ color: theme.colors.error, fontSize: 12, marginTop: theme.spacing.md, paddingHorizontal: theme.spacing.lg }}>
+              {this.state.errorInfo}
+            </Text>
+          )}
         </View>
       );
     }
@@ -163,7 +170,20 @@ export default function App() {
   const [user, setUser] = useState<firebase.User | null>(null);
   const [initializing, setInitializing] = useState(true);
   const [networkError, setNetworkError] = useState(false);
+  const [appReady, setAppReady] = useState(false);
 
+  // Check network connectivity using NetInfo
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener(state => {
+      setNetworkError(!state.isConnected);
+    });
+
+    return () => {
+      unsubscribe();
+    };
+  }, []);
+
+  // Initialize Firebase and check authentication
   useEffect(() => {
     // Check authentication state
     const unsubscribeAuth = auth.onAuthStateChanged((firebaseUser) => {
@@ -171,48 +191,42 @@ export default function App() {
       if (initializing) {
         setInitializing(false);
       }
+      setAppReady(true);
+    }, (error) => {
+      console.error('Auth state change error:', error);
+      setInitializing(false);
+      setAppReady(true);
     });
-
-    // Check network connectivity using a simpler approach
-    const checkConnectivity = () => {
-      fetch('https://www.google.com', { mode: 'no-cors' })
-        .then(() => {
-          setNetworkError(false);
-        })
-        .catch(() => {
-          setNetworkError(true);
-        });
-    };
-
-    // Check initially and then every 10 seconds
-    checkConnectivity();
-    const connectivityInterval = setInterval(checkConnectivity, 10000);
 
     return () => {
       unsubscribeAuth();
-      clearInterval(connectivityInterval);
     };
   }, [initializing]);
 
-  // Show network error if detected
-  useEffect(() => {
-    if (networkError && !initializing) {
-      Alert.alert(
-        "Network Connection Issue",
-        "The app is having trouble connecting to the server. Some features may be limited.",
-        [{ text: "OK" }]
-      );
-    }
-  }, [networkError, initializing]);
-
-  if (!fontsLoaded || initializing) {
+  // Show loading screen while fonts are loading or app is initializing
+  if (!fontsLoaded || !appReady) {
     return <LoadingScreen />;
+  }
+
+  // Show network error if detected
+  if (networkError) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.colors.background }}>
+        <Text style={{ color: theme.colors.error, fontSize: 18, marginBottom: theme.spacing.md }}>
+          No Internet Connection
+        </Text>
+        <Text style={{ color: theme.colors.text, textAlign: 'center', paddingHorizontal: theme.spacing.lg }}>
+          Please check your connection and try again.
+        </Text>
+      </View>
+    );
   }
 
   return (
     <ErrorBoundary>
       <SafeAreaProvider>
         <NavigationContainer theme={navigationTheme}>
+          <StatusBar style="auto" />
           <Stack.Navigator
             initialRouteName={user ? "Home" : "Welcome"}
             screenOptions={{
@@ -251,7 +265,6 @@ export default function App() {
             <Stack.Screen name="DoctorDashboard" component={DoctorDashboardScreen} />
           </Stack.Navigator>
         </NavigationContainer>
-        <StatusBar style="auto" />
       </SafeAreaProvider>
     </ErrorBoundary>
   );

@@ -11,12 +11,14 @@ import {
   Dimensions,
   StatusBar,
   Alert,
-  ActivityIndicator
+  ActivityIndicator,
+  Modal
 } from 'react-native';
 import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { StackNavigationProp } from '@react-navigation/stack';
 import firebase from '../firebaseConfig';
 import { auth, db } from '../firebaseConfig';
+import { appointmentService, Appointment } from '../models/AppointmentModel';
 
 type RootStackParamList = {
   Home: undefined;
@@ -25,6 +27,14 @@ type RootStackParamList = {
   Doctors: undefined;
   Remedies: undefined;
   HealthInfo: undefined;
+  BookAppointment: {
+    doctorId: string;
+    doctorName: string;
+    specialization: string;
+    location: string;
+    email: string;
+    existingAppointment?: Appointment;
+  };
 };
 
 type HomeScreenNavigationProp = StackNavigationProp<
@@ -43,10 +53,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
   const [userName, setUserName] = useState<string>('');
   const [connectionStatus, setConnectionStatus] = useState<string>('checking');
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+  const [showAppointments, setShowAppointments] = useState(false);
 
   useEffect(() => {
-    // Check Firebase connection
-    const checkConnection = async () => {
+    // Check Firebase connection and load appointments
+    const loadData = async () => {
       try {
         setIsLoading(true);
         const currentUser = auth.currentUser;
@@ -65,6 +77,12 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
           await fetch('https://www.google.com', { mode: 'no-cors' });
           console.log('Network connection successful');
           setConnectionStatus('connected');
+
+          // Load appointments
+          if (currentUser) {
+            const userAppointments = await appointmentService.getPatientAppointments(currentUser.uid);
+            setAppointments(userAppointments);
+          }
         } catch (error) {
           console.error('Network connection error:', error);
           setConnectionStatus('error');
@@ -78,7 +96,7 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       }
     };
 
-    checkConnection();
+    loadData();
   }, []);
 
   const handleLogout = async () => {
@@ -90,6 +108,127 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
       Alert.alert("Logout Error", "Failed to sign out. Please try again.");
     }
   };
+
+  const getStatusColor = (status: Appointment['status']) => {
+    switch (status) {
+      case 'pending': return '#f59e0b';
+      case 'confirmed': return '#10b981';
+      case 'cancelled': return '#ef4444';
+      case 'completed': return '#3b82f6';
+      default: return '#666666';
+    }
+  };
+
+  const getStatusText = (status: Appointment['status']) => {
+    switch (status) {
+      case 'pending': return 'Pending';
+      case 'confirmed': return 'Confirmed';
+      case 'cancelled': return 'Cancelled';
+      case 'completed': return 'Completed';
+      default: return status;
+    }
+  };
+
+  const handleDeleteAppointment = async (appointmentId: string) => {
+    try {
+      Alert.alert(
+        'Delete Appointment',
+        'Are you sure you want to delete this appointment?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel'
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              await appointmentService.deleteAppointment(appointmentId);
+              // Refresh appointments
+              if (auth.currentUser) {
+                const userAppointments = await appointmentService.getPatientAppointments(auth.currentUser.uid);
+                setAppointments(userAppointments);
+              }
+              Alert.alert('Success', 'Appointment deleted successfully');
+            }
+          }
+        ]
+      );
+    } catch (error) {
+      console.error('Error deleting appointment:', error);
+      Alert.alert('Error', 'Failed to delete appointment');
+    }
+  };
+
+  const handleEditAppointment = (appointment: Appointment) => {
+    // Navigate to BookAppointment screen with existing appointment data
+    navigation.navigate('BookAppointment', {
+      doctorId: appointment.doctorId,
+      doctorName: appointment.doctorName,
+      specialization: '',
+      location: '',
+      email: appointment.doctorEmail,
+      existingAppointment: appointment
+    });
+  };
+
+  const renderAppointmentModal = () => (
+    <Modal
+      animationType="slide"
+      transparent={true}
+      visible={showAppointments}
+      onRequestClose={() => setShowAppointments(false)}
+    >
+      <View style={styles.modalContainer}>
+        <View style={styles.modalContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>My Appointments</Text>
+            <TouchableOpacity onPress={() => setShowAppointments(false)}>
+              <Ionicons name="close" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+          
+          <ScrollView style={styles.appointmentsList}>
+            {appointments.length === 0 ? (
+              <Text style={styles.noAppointmentsText}>No appointments found</Text>
+            ) : (
+              appointments.map((appointment) => (
+                <View key={appointment.id} style={styles.appointmentItem}>
+                  <View style={styles.appointmentHeader}>
+                    <Text style={styles.doctorName}>Dr. {appointment.doctorName}</Text>
+                    <View style={[styles.statusBadge, { backgroundColor: getStatusColor(appointment.status) }]}>
+                      <Text style={styles.statusText}>{getStatusText(appointment.status)}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.appointmentDetails}>
+                    <Text style={styles.appointmentDate}>{appointment.date} at {appointment.time}</Text>
+                  </View>
+                  {appointment.status === 'pending' && (
+                    <View style={styles.appointmentActions}>
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.editButton]}
+                        onPress={() => handleEditAppointment(appointment)}
+                      >
+                        <Ionicons name="pencil" size={16} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Edit</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity 
+                        style={[styles.actionButton, styles.deleteButton]}
+                        onPress={() => handleDeleteAppointment(appointment.id!)}
+                      >
+                        <Ionicons name="trash" size={16} color="#FFFFFF" />
+                        <Text style={styles.actionButtonText}>Delete</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              ))
+            )}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal>
+  );
 
   // Show loading indicator while checking connection
   if (isLoading) {
@@ -123,8 +262,16 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               )}
             </View>
             <View style={styles.headerIcons}>
-              <TouchableOpacity style={styles.iconButton}>
-                <Feather name="bell" size={24} color="#2E8B57" />
+              <TouchableOpacity 
+                style={styles.iconButton}
+                onPress={() => setShowAppointments(true)}
+              >
+                <Feather name="calendar" size={24} color="#2E8B57" />
+                {appointments.length > 0 && (
+                  <View style={styles.appointmentBadge}>
+                    <Text style={styles.appointmentBadgeText}>{appointments.length}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
               <TouchableOpacity style={styles.iconButton} onPress={handleLogout}>
                 <Feather name="log-out" size={24} color="#2E8B57" />
@@ -212,6 +359,8 @@ const HomeScreen: React.FC<Props> = ({ navigation }) => {
               <Text style={styles.tipText}>Regular oil massage improves circulation</Text>
             </View>
           </ScrollView>
+
+          {renderAppointmentModal()}
         </ScrollView>
       </CustomSafeAreaView>
     </ImageBackground>
@@ -475,6 +624,113 @@ const styles = StyleSheet.create({
   },
   cardGradient4: {
     backgroundColor: 'rgba(230, 245, 245, 0.9)',
+  },
+  modalContainer: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-end',
+  },
+  modalContent: {
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 20,
+    maxHeight: '80%',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  appointmentsList: {
+    maxHeight: '100%',
+  },
+  appointmentItem: {
+    backgroundColor: '#F3F4F6',
+    borderRadius: 10,
+    padding: 15,
+    marginBottom: 10,
+  },
+  appointmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 5,
+  },
+  doctorName: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#333',
+  },
+  statusBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 15,
+  },
+  statusText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  appointmentDate: {
+    fontSize: 14,
+    color: '#666',
+  },
+  appointmentDetails: {
+    marginTop: 5,
+  },
+  noAppointmentsText: {
+    textAlign: 'center',
+    color: '#666',
+    fontSize: 16,
+    marginTop: 20,
+  },
+  appointmentBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    backgroundColor: '#FF4B4B',
+    borderRadius: 10,
+    width: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  appointmentBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  appointmentActions: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginTop: 10,
+    gap: 10,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 15,
+    gap: 4,
+  },
+  actionButtonText: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontWeight: '500',
+  },
+  editButton: {
+    backgroundColor: '#3B82F6',
+  },
+  deleteButton: {
+    backgroundColor: '#EF4444',
   },
 });
 

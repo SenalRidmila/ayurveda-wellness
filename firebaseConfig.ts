@@ -2,7 +2,7 @@ import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth';
 import 'firebase/compat/firestore';
 import 'firebase/compat/functions';
-import 'firebase/compat/database';
+import { Platform } from 'react-native';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -12,8 +12,7 @@ const firebaseConfig = {
   storageBucket: "ayurweda-wellness.appspot.com",
   messagingSenderId: "535385039630",
   appId: "1:535385039630:web:df1409a7a2f0cbab08ed5f",
-  measurementId: "G-92572PH5K8",
-  databaseURL: "https://ayurweda-wellness-default-rtdb.asia-southeast1.firebasedatabase.app"
+  measurementId: "G-92572PH5K8"
 };
 
 // Initialize Firebase
@@ -29,27 +28,41 @@ if (!firebase.apps.length) {
 // Initialize Firebase services
 export const auth = firebase.auth();
 export const db = firebase.firestore();
-export const rtdb = firebase.database();
 export const functions = firebase.functions();
 
+// Configure Firestore settings
+db.settings({
+  cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+  merge: true
+});
+
 // Enable offline persistence for Firestore with better error handling
-try {
-  db.enablePersistence({ synchronizeTabs: true })
-    .then(() => {
-      console.log('Firestore persistence enabled');
-    })
-    .catch((err) => {
-      if (err.code === 'failed-precondition') {
-        console.warn('Firestore persistence failed: Multiple tabs open');
-      } else if (err.code === 'unimplemented') {
-        console.warn('Firestore persistence not available in this browser');
-      } else {
-        console.error('Firestore persistence error:', err);
-      }
+// Only enable persistence on platforms that support it properly
+const enableFirestorePersistence = async () => {
+  // Skip persistence on web platforms
+  if (Platform.OS === 'web') {
+    console.log('Skipping Firestore persistence on web platform');
+    return;
+  }
+
+  try {
+    // Use cache settings instead of enablePersistence
+    db.settings({
+      cacheSizeBytes: firebase.firestore.CACHE_SIZE_UNLIMITED,
+      merge: true
     });
-} catch (error) {
-  console.warn('Could not enable Firestore persistence:', error);
-}
+    console.log('Firestore cache settings configured');
+  } catch (err: any) {
+    console.error('Firestore settings error:', err);
+    // Fall back to memory cache
+    console.log('Falling back to memory cache');
+  }
+};
+
+// Initialize persistence
+enableFirestorePersistence().catch(error => {
+  console.warn('Error setting up Firestore persistence:', error);
+});
 
 // Use local emulator if in development mode
 if (__DEV__) {

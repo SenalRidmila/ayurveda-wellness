@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert } from 'react-native';
+import { StyleSheet, Text, View, TextInput, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { Feather } from '@expo/vector-icons';
 import firebase from 'firebase/compat/app';
@@ -20,17 +20,28 @@ type Props = {
 
 const ResetPasswordScreen = ({ navigation }: Props) => {
   const [email, setEmail] = useState('');
+  const [loading, setLoading] = useState(false);
 
   const handleResetPassword = async () => {
+    if (!email) {
+      Alert.alert('Error', 'Please enter your email address');
+      return;
+    }
+
+    setLoading(true);
     try {
+      // Send Firebase password reset email only
       await firebase.auth().sendPasswordResetEmail(email);
+      
       Alert.alert(
         "Success",
-        "Password reset email sent. Please check your inbox.",
+        "Password reset instructions have been sent to your email. Please check your inbox.",
         [{ text: "OK", onPress: () => navigation.navigate('Login') }]
       );
     } catch (error: any) {
       Alert.alert("Error", error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -52,11 +63,20 @@ const ResetPasswordScreen = ({ navigation }: Props) => {
           placeholderTextColor="#A9A9A9"
           value={email}
           onChangeText={setEmail}
+          editable={!loading}
         />
       </View>
       
-      <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
-        <Text style={styles.buttonText}>Send Reset Link</Text>
+      <TouchableOpacity 
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        onPress={handleResetPassword}
+        disabled={loading}
+      >
+        {loading ? (
+          <ActivityIndicator color="#FFFFFF" size="small" />
+        ) : (
+          <Text style={styles.buttonText}>Send Reset Link</Text>
+        )}
       </TouchableOpacity>
     </View>
   );
@@ -129,6 +149,9 @@ const styles = StyleSheet.create({
         fontSize: 18,
         fontFamily: 'Poppins_600SemiBold',
       },
+      buttonDisabled: {
+        backgroundColor: '#A9A9A9',
+      }
 });
 
 export default ResetPasswordScreen; 

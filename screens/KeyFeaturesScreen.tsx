@@ -46,7 +46,7 @@ interface FeatureCardProps {
 }
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, subtitle, color }) => (
-    <TouchableOpacity style={styles.featureCard}>
+    <View style={styles.featureCard}>
       <View style={[styles.featureIconContainer, { backgroundColor: color }]}>
         {icon}
       </View>
@@ -54,7 +54,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ icon, title, subtitle, color 
         <Text style={styles.featureTitle}>{title}</Text>
         <Text style={styles.featureSubtitle}>{subtitle}</Text>
       </View>
-    </TouchableOpacity>
+    </View>
 );
 
 const KeyFeaturesScreen = ({ navigation }: Props) => {
@@ -85,10 +85,21 @@ const KeyFeaturesScreen = ({ navigation }: Props) => {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#F4F9F4" />
+      
+      {/* Back Button */}
+      <TouchableOpacity 
+        style={styles.backButton} 
+        onPress={() => navigation.navigate('Welcome')}
+      >
+        <Ionicons name="arrow-back" size={24} color="#1E5631" />
+        <Text style={styles.backButtonText}>Back</Text>
+      </TouchableOpacity>
+
       <View style={styles.header}>
         <Text style={styles.title}>Key Features</Text>
         <Text style={styles.subtitle}>Everything you need for holistic wellness</Text>
       </View>
+      
       <View style={styles.featuresList}>
         <FlatList
           data={features}
@@ -103,6 +114,7 @@ const KeyFeaturesScreen = ({ navigation }: Props) => {
           )}
         />
       </View>
+      
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Login')}>
         <Text style={styles.buttonText}>Get Started</Text>
       </TouchableOpacity>
@@ -118,9 +130,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
   },
+  backButton: {
+    position: 'absolute',
+    top: 50,
+    left: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 10,
+    zIndex: 1000,
+  },
+  backButtonText: {
+    fontSize: 16,
+    color: '#1E5631',
+    marginLeft: 5,
+    fontWeight: '500',
+  },
   header: {
     alignItems: 'center',
-    marginTop: 40,
+    marginTop: 80,
     marginBottom: 30,
   },
   title: {
