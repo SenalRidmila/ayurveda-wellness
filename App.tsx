@@ -13,12 +13,14 @@ import {
 } from '@expo-google-fonts/poppins';
 import { auth } from './firebaseConfig';
 import firebase from './firebaseConfig'; // Import directly from firebaseConfig
-import emailjs from 'emailjs-com';
+import emailjs from '@emailjs/browser';
 import { EMAILJS_CONFIG } from './emailjsConfig';
 import NetInfo from '@react-native-community/netinfo';
 
-// Initialize EmailJS
-emailjs.init(EMAILJS_CONFIG.USER_ID);
+// Initialize EmailJS if configuration is available
+if (EMAILJS_CONFIG.USER_ID !== 'YOUR_USER_ID') {
+  emailjs.init(EMAILJS_CONFIG.USER_ID);
+}
 
 // Define theme colors
 const theme = {
