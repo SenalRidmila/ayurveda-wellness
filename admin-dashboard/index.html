@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayurveda Wellness Admin Dashboard</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore-compat.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .header {
+            background-color: #2E7D32;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .header h1 {
+            margin-bottom: 10px;
+        }
+        .btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background-color: #45a049;
+        }
+        .btn-danger {
+            background-color: #f44336;
+        }
+        .btn-danger:hover {
+            background-color: #da190b;
+        }
+        .table {
+            width: 100%;
+            background-color: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .table th, .table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .table th {
+            background-color: #f8f9fa;
+            font-weight: 600;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-pending {
+            background-color: #fff3cd;
+            color: #856404;
+        }
+        .status-approved {
+            background-color: #d4edda;
+            color: #155724;
+        }
+        .status-rejected {
+            background-color: #f8d7da;
+            color: #721c24;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 15% auto;
+            padding: 20px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: black;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+        .alert {
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 4px;
+        }
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .loading {
+            text-align: center;
+            padding: 50px;
+        }
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 2s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyAtdXRG1Nd4riE8aLYVoZ9QuAGV1KoTUsI",
+            authDomain: "ayurweda-wellness.firebaseapp.com",
+            projectId: "ayurweda-wellness",
+            storageBucket: "ayurweda-wellness.appspot.com",
+            messagingSenderId: "535385039630",
+            appId: "1:535385039630:web:df1409a7a2f0cbab08ed5f",
+            measurementId: "G-92572PH5K8"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        // EmailJS configuration
+        emailjs.init("your_public_key_here"); // Replace with your EmailJS public key
+
+        const AdminDashboard = () => {
+            const [doctors, setDoctors] = React.useState([]);
+            const [loading, setLoading] = React.useState(true);
+            const [selectedDoctor, setSelectedDoctor] = React.useState(null);
+            const [showModal, setShowModal] = React.useState(false);
+            const [actionType, setActionType] = React.useState('approve');
+            const [customMessage, setCustomMessage] = React.useState('');
+            const [alert, setAlert] = React.useState(null);
+            const [processing, setProcessing] = React.useState(false);
+
+            React.useEffect(() => {
+                fetchDoctors();
+            }, []);
+
+            const fetchDoctors = async () => {
+                try {
+                    setLoading(true);
+                    const snapshot = await db.collection('doctors').get();
+                    const doctorsList = [];
+                    snapshot.forEach((doc) => {
+                        const data = doc.data();
+                        doctorsList.push({
+                            id: doc.id,
+                            ...data,
+                            status: data.status || 'pending'
+                        });
+                    });
+                    
+                    // Filter only pending doctors
+                    const pendingDoctors = doctorsList.filter(doctor => doctor.status === 'pending');
+                    setDoctors(pendingDoctors);
+                } catch (error) {
+                    console.error('Error fetching doctors:', error);
+                    setAlert({ type: 'error', message: 'Failed to fetch doctor applications' });
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const handleAction = (doctor, action) => {
+                setSelectedDoctor(doctor);
+                setActionType(action);
+                setCustomMessage('');
+                setShowModal(true);
+            };
+
+            const sendEmail = async (doctor, status, message) => {
+                try {
+                    const templateParams = {
+                        to_name: doctor.name,
+                        to_email: doctor.email,
+                        status: status,
+                        message: message || getDefaultMessage(status, doctor.name),
+                        from_name: 'Ayurveda Wellness Admin'
+                    };
+
+                    await emailjs.send('service_ayurveda', 'template_doctor_approval', templateParams);
+                    return true;
+                } catch (error) {
+                    console.error('Email failed:', error);
+                    return false;
+                }
+            };
+
+            const getDefaultMessage = (status, doctorName) => {
+                if (status === 'approved') {
+                    return `Dear Dr. ${doctorName},
+
+Congratulations! Your doctor registration with Ayurveda Wellness has been approved.
+
+You can now:
+- Login to your doctor account
+- Manage your profile and availability
+- Start accepting patient appointments
+
+Welcome to our platform!
+
+Best regards,
+Ayurveda Wellness Admin Team`;
+                } else {
+                    return `Dear Dr. ${doctorName},
+
+Thank you for your interest in joining Ayurveda Wellness.
+
+After careful review, we are unable to approve your registration at this time. You are welcome to reapply in the future.
+
+Best regards,
+Ayurveda Wellness Admin Team`;
+                }
+            };
+
+            const confirmAction = async () => {
+                if (!selectedDoctor) return;
+
+                try {
+                    setProcessing(true);
+                    
+                    // Update doctor status in Firebase
+                    const newStatus = actionType === 'approve' ? 'approved' : 'rejected';
+                    await db.collection('doctors').doc(selectedDoctor.id).update({
+                        status: newStatus,
+                        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+
+                    // Send email
+                    const emailSent = await sendEmail(selectedDoctor, newStatus, customMessage);
+
+                    setAlert({
+                        type: 'success',
+                        message: `Doctor ${newStatus} ${emailSent ? 'and email sent' : 'but email failed'} successfully!`
+                    });
+
+                    // Refresh the list
+                    fetchDoctors();
+                    setShowModal(false);
+                    setSelectedDoctor(null);
+                } catch (error) {
+                    console.error('Error:', error);
+                    setAlert({ type: 'error', message: 'Failed to update doctor status' });
+                } finally {
+                    setProcessing(false);
+                }
+            };
+
+            return (
+                <div className="container">
+                    <div className="header">
+                        <h1>🌿 Ayurveda Wellness Admin Dashboard</h1>
+                        <p>Doctor Approval Management System</p>
+                    </div>
+
+                    {alert && (
+                        <div className={`alert ${alert.type === 'success' ? 'alert-success' : 'alert-error'}`}>
+                            {alert.message}
+                            <span className="close" onClick={() => setAlert(null)}>&times;</span>
+                        </div>
+                    )}
+
+                    <h2>Pending Doctor Approvals ({doctors.length})</h2>
+
+                    {loading ? (
+                        <div className="loading">
+                            <div className="spinner"></div>
+                            <p>Loading doctor applications...</p>
+                        </div>
+                    ) : (
+                        <table className="table">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Email</th>
+                                    <th>Specialization</th>
+                                    <th>Location</th>
+                                    <th>Experience</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {doctors.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="7" style={{textAlign: 'center', padding: '20px', color: '#666'}}>
+                                            No pending doctor applications
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    doctors.map((doctor) => (
+                                        <tr key={doctor.id}>
+                                            <td>{doctor.name}</td>
+                                            <td>{doctor.email}</td>
+                                            <td>{doctor.specialization}</td>
+                                            <td>{doctor.location}</td>
+                                            <td>{doctor.experience || 0} years</td>
+                                            <td>
+                                                <span className={`status-badge status-${doctor.status}`}>
+                                                    {doctor.status}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <button 
+                                                    className="btn"
+                                                    onClick={() => handleAction(doctor, 'approve')}
+                                                >
+                                                    ✓ Approve
+                                                </button>
+                                                <button 
+                                                    className="btn btn-danger"
+                                                    onClick={() => handleAction(doctor, 'reject')}
+                                                >
+                                                    ✗ Reject
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    )}
+
+                    {/* Modal */}
+                    <div id="actionModal" className="modal" style={{display: showModal ? 'block' : 'none'}}>
+                        <div className="modal-content">
+                            <span className="close" onClick={() => setShowModal(false)}>&times;</span>
+                            <h3>📧 Confirm {actionType === 'approve' ? 'Approval' : 'Rejection'} & Send Email</h3>
+                            
+                            <p>Are you sure you want to {actionType} Dr. {selectedDoctor?.name}?</p>
+                            
+                            <div className="form-group">
+                                <label>Email Subject:</label>
+                                <p style={{backgroundColor: '#f5f5f5', padding: '10px', borderRadius: '4px'}}>
+                                    Doctor Registration {actionType === 'approve' ? 'Approved' : 'Status'} - Ayurveda Wellness
+                                </p>
+                            </div>
+
+                            <div className="form-group">
+                                <label htmlFor="customMessage">Custom Message (Optional):</label>
+                                <textarea
+                                    id="customMessage"
+                                    rows="6"
+                                    value={customMessage}
+                                    onChange={(e) => setCustomMessage(e.target.value)}
+                                    placeholder={`Default ${actionType} message will be sent if left blank`}
+                                />
+                            </div>
+
+                            <div style={{textAlign: 'right', marginTop: '20px'}}>
+                                <button 
+                                    className="btn" 
+                                    onClick={() => setShowModal(false)}
+                                    disabled={processing}
+                                    style={{backgroundColor: '#6c757d', marginRight: '10px'}}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className={`btn ${actionType === 'approve' ? '' : 'btn-danger'}`}
+                                    onClick={confirmAction}
+                                    disabled={processing}
+                                >
+                                    {processing ? 'Processing...' : `${actionType === 'approve' ? 'Approve' : 'Reject'} & Send Email`}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        ReactDOM.render(<AdminDashboard />, document.getElementById('root'));
+    </script>
+</body>
+</html>

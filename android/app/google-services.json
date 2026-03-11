@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "535385039630",
+    "project_id": "ayurweda-wellness",
+    "storage_bucket": "ayurweda-wellness.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:535385039630:android:294bd8f956d17f0c08ed5f",
+        "android_client_info": {
+          "package_name": "com.ayurwedawellness"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBWn9IZyN6TwxEsBiUPl_QqDoU2XK4rKdE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

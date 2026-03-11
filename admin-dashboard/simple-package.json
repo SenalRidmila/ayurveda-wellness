@@ -1,0 +1,10 @@
+{
+  "name": "ayurveda-admin-simple",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx http-server . -p 3001 -o",
+    "start": "npx http-server . -p 3001"
+  },
+  "dependencies": {}
+}
